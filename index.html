@@ -105,6 +105,7 @@
         console.log('✅ 基本连接测试通过，查询结果:', testQuery.size, '条');
         
         // 测试写入权限
+        setStatus('🔄 测试写入权限...', 'info');
         const testDoc = await addDoc(collection(db, 'test'), {
           message: '连接测试 - ' + new Date().toISOString(),
           timestamp: new Date().toISOString(),
@@ -112,9 +113,18 @@
         });
         console.log('✅ 写入权限测试通过，创建文档:', testDoc.id);
         
+        // 等待一下确保文档创建完成
+        setStatus('🔄 等待文档创建完成...', 'info');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // 立即删除测试文档
+        setStatus('🔄 测试删除权限...', 'info');
         await deleteDoc(doc(db, 'test', testDoc.id));
         console.log('✅ 删除权限测试通过');
+        
+        // 再次等待确保删除完成
+        setStatus('🔄 等待删除操作完成...', 'info');
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         setStatus('✅ 连接测试完成：读取、写入、删除权限都正常', 'success');
         
