@@ -28,6 +28,7 @@
     <div id="deviceInfo" style="font-size: 14px; color: #666;">
       正在检测设备信息...
     </div>
+    <button id="btnTestConnection" style="margin-top: 10px; background: #ff9800;">🔍 测试连接</button>
   </div>
 
   <div class="card">
@@ -93,6 +94,39 @@
       }
     }
 
+    // 测试连接功能
+    async function testConnection() {
+      try {
+        setStatus('🔍 正在测试连接...', 'info');
+        console.log('🔍 开始测试连接...');
+        
+        // 测试基本连接
+        const testQuery = await getDocs(collection(db, 'test'));
+        console.log('✅ 基本连接测试通过，查询结果:', testQuery.size, '条');
+        
+        // 测试写入权限
+        const testDoc = await addDoc(collection(db, 'test'), {
+          message: '连接测试 - ' + new Date().toISOString(),
+          timestamp: new Date().toISOString(),
+          test: true
+        });
+        console.log('✅ 写入权限测试通过，创建文档:', testDoc.id);
+        
+        // 立即删除测试文档
+        await deleteDoc(doc(db, 'test', testDoc.id));
+        console.log('✅ 删除权限测试通过');
+        
+        setStatus('✅ 连接测试完成：读取、写入、删除权限都正常', 'success');
+        
+        // 重新获取数据
+        await onGet();
+        
+      } catch (e) {
+        console.error('❌ 连接测试失败:', e);
+        setStatus('❌ 连接测试失败: ' + e.message, 'error');
+      }
+    }
+
     async function smokeTest() {
       try {
         setStatus('🔄 正在连接 Firestore 云端...', 'info');
@@ -138,15 +172,25 @@
 
     async function onGet() {
       try {
+        setStatus('🔄 正在从云端获取数据...', 'info');
+        console.log('🔄 开始查询 test 集合...');
+        
         const snap = await getDocs(collection(db, 'test'));
+        console.log('📊 查询结果:', snap.size, '条数据');
+        console.log('📊 查询详情:', snap);
+        
         if (snap.empty) {
+          console.log('📭 集合为空，没有数据');
           dataListEl.textContent = '暂无数据';
           dataCountEl.textContent = '(0)';
+          setStatus('📭 云端暂无数据，可以添加一些测试数据', 'info');
           return;
         }
+        
         let html = '';
         snap.forEach(d => {
           const data = d.data();
+          console.log('📄 文档数据:', d.id, data);
           const time = data.timestamp ? new Date(data.timestamp).toLocaleString() : '刚刚';
           html += `<div style="padding:8px; border:1px solid #eee; border-radius:4px; margin:8px 0; background:white;">
             <div><strong>${data.message || ''}</strong></div>
@@ -155,10 +199,16 @@
             </div>
           </div>`;
         });
+        
         dataListEl.innerHTML = html;
         dataCountEl.textContent = `(${snap.size})`;
         setStatus(`✅ 已从云端获取 ${snap.size} 条数据`, 'success');
+        console.log('✅ 数据获取完成，已更新页面');
+        
       } catch (e) {
+        console.error('❌ 获取数据失败:', e);
+        console.error('错误代码:', e.code);
+        console.error('错误消息:', e.message);
         setStatus('❌ 从云端获取失败: ' + e.message, 'error');
       }
     }
@@ -181,6 +231,7 @@
     document.getElementById('btnAdd').addEventListener('click', onAdd);
     document.getElementById('btnGet').addEventListener('click', onGet);
     document.getElementById('btnClear').addEventListener('click', onClear);
+    document.getElementById('btnTestConnection').addEventListener('click', testConnection);
 
     smokeTest();
     
