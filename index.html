@@ -24,6 +24,13 @@
   <div id="status" class="status">尚未开始测试</div>
 
   <div class="card">
+    <h3>📱 设备信息</h3>
+    <div id="deviceInfo" style="font-size: 14px; color: #666;">
+      正在检测设备信息...
+    </div>
+  </div>
+
+  <div class="card">
     <h3>📝 云端数据操作</h3>
     <div class="row">
       <input id="messageInput" type="text" placeholder="输入要保存到云端的数据" />
@@ -60,16 +67,54 @@
       statusEl.className = 'status' + (type ? ' ' + type : '');
     }
 
+    // 显示设备信息
+    function showDeviceInfo() {
+      const deviceInfo = document.getElementById('deviceInfo');
+      if (deviceInfo) {
+        const info = {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          language: navigator.language,
+          cookieEnabled: navigator.cookieEnabled,
+          onLine: navigator.onLine,
+          connection: navigator.connection ? navigator.connection.effectiveType : 'unknown',
+          timestamp: new Date().toISOString()
+        };
+        
+        deviceInfo.innerHTML = `
+          <div><strong>设备平台:</strong> ${info.platform}</div>
+          <div><strong>浏览器:</strong> ${info.userAgent.substring(0, 100)}...</div>
+          <div><strong>语言:</strong> ${info.language}</div>
+          <div><strong>Cookie:</strong> ${info.cookieEnabled ? '启用' : '禁用'}</div>
+          <div><strong>网络状态:</strong> ${info.onLine ? '在线' : '离线'}</div>
+          <div><strong>连接类型:</strong> ${info.connection}</div>
+          <div><strong>检测时间:</strong> ${new Date(info.timestamp).toLocaleString()}</div>
+        `;
+      }
+    }
+
     async function smokeTest() {
       try {
+        setStatus('🔄 正在连接 Firestore 云端...', 'info');
+        
         // 测试云端连接
-        await getDocs(collection(db, 'test')); 
+        const testQuery = await getDocs(collection(db, 'test')); 
+        console.log('✅ 连接成功，测试查询结果:', testQuery.size, '条数据');
+        
         setStatus('✅ Firestore 云端连接成功，数据将实时同步', 'success');
+        
         // 自动获取云端数据
         await onGet();
       } catch (e) {
-        setStatus('❌ Firestore 云端连接失败: ' + e.message, 'error');
-        console.error(e);
+        console.error('❌ 连接失败详细错误:', e);
+        console.error('错误代码:', e.code);
+        console.error('错误消息:', e.message);
+        console.error('错误堆栈:', e.stack);
+        
+        let errorMsg = '❌ Firestore 云端连接失败: ' + e.message;
+        if (e.code) errorMsg += ` (代码: ${e.code})`;
+        
+        setStatus(errorMsg, 'error');
       }
     }
 
@@ -138,6 +183,9 @@
     document.getElementById('btnClear').addEventListener('click', onClear);
 
     smokeTest();
+    
+    // 显示设备信息
+    showDeviceInfo();
   </script>
 </body>
 </html>
